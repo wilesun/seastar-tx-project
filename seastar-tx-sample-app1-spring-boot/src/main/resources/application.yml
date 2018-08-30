@@ -1,0 +1,51 @@
+spring:
+  application:
+    name: seastar-tx-sample-app1
+  datasource:
+    type: org.springframework.jdbc.datasource.DriverManagerDataSource
+    driver-class-name: org.postgresql.Driver
+#    url: jdbc:postgresql://host-196:5432/seastar
+    url: jdbc:postgresql://localhost:5432/seastar
+    username: postgres
+    password: postgres
+#    hikari:
+#      maximum-pool-size: 10
+#      max-lifetime: 1765000
+#      minimum-idle: 10
+#      connection-timeout: 30000
+  aop:
+    proxy-target-class: true
+server:
+  port: 9831
+  servlet:
+    context-path: /tx-app1
+#  tomcat:
+#    max-threads: 10
+#  address: 192.168.0.189
+logging:
+  level:
+#    org.springframework.jdbc: debug
+#    org.springframework.transaction: debug
+#    org.springframework.dao: debug
+#    org.apache.ibatis: debug
+    com.kqgeo.seastar.learn.tx: debug
+#    org.springframework.web: debug
+#eureka:
+#  client:
+#    service-url:
+#      defaultZone: http://host-199:8761/eureka
+#  instance:
+#    ip-address: 192.168.0.189
+##    ip-address: host-199
+#    instance-id: ${eureka.instance.ip-address}:${server.port}
+#    prefer-ip-address: true
+#    hostname: ${eureka.instance.ip-address}
+#    lease-expiration-duration-in-seconds: 10
+#    lease-renewal-interval-in-seconds: 5
+mybatis:
+  mapper-locations: classpath:/mapping/*.xml
+seastar:
+  transaction:
+    client:
+      url: http://localhost:8851
+      local-endpoint: http://localhost:7643

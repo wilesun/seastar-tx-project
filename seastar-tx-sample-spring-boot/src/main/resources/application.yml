@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: seastar-tx-sample-spring-boot
+  aop:
+    proxy-target-class: true
+  datasource:
+    type: org.springframework.jdbc.datasource.DriverManagerDataSource
+    driver-class-name: org.postgresql.Driver
+#    url: jdbc:postgresql://host-196:5432/seastar
+    url: jdbc:postgresql://localhost:5432/seastar
+    username: postgres
+    password: postgres
+#    hikari:
+#      maximum-pool-size: 10
+#      max-lifetime: 1765000
+#      minimum-idle: 1
+#logging:
+#  level:
+#    org.springframework.jdbc.datasource: debug
+#    org.springframework.transaction: debug
+mybatis:
+  mapper-locations: classpath:/mapping/*.xml
+server:
+  port: 7643
+  servlet:
+    context-path: /
+seastar:
+  transaction:
+    client:
+      url: http://localhost:8851
+      local-endpoint: http://localhost:7643
