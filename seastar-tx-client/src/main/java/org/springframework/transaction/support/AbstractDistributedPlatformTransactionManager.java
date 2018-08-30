@@ -1,21 +1,21 @@
 package org.springframework.transaction.support;
 
 
-import com.kqgeo.seastar.transaction.DistributedTransactionManagerDelegate;
-import com.kqgeo.seastar.transaction.SpanDefinition;
-import com.kqgeo.seastar.transaction.TraceContext;
-import com.kqgeo.seastar.transaction.TraceDefinition;
-import com.kqgeo.seastar.transaction.TraceResourceManager;
-import com.kqgeo.seastar.transaction.TraceSyncService;
-import com.kqgeo.seastar.transaction.TransactionProcessFunction;
-import com.kqgeo.seastar.transaction.TransactionProcessRequest;
-import com.kqgeo.seastar.transaction.TransactionProcessResponse;
-import com.kqgeo.seastar.transaction.TransactionProcessService;
-import com.kqgeo.seastar.transaction.TransactionStatusSnapshot;
-import com.kqgeo.seastar.transaction.TransactionStatusSnapshotInterceptorUtils;
-import com.kqgeo.seastar.transaction.support.TransactionProcessUtils;
-import com.kqgeo.seastar.transaction.util.SpanUtils;
-import com.kqgeo.seastar.transaction.util.TraceUtils;
+import io.github.seastar.transaction.DistributedTransactionManagerDelegate;
+import io.github.seastar.transaction.SpanDefinition;
+import io.github.seastar.transaction.TraceContext;
+import io.github.seastar.transaction.TraceDefinition;
+import io.github.seastar.transaction.TraceResourceManager;
+import io.github.seastar.transaction.TraceSyncService;
+import io.github.seastar.transaction.TransactionProcessFunction;
+import io.github.seastar.transaction.TransactionProcessRequest;
+import io.github.seastar.transaction.TransactionProcessResponse;
+import io.github.seastar.transaction.TransactionProcessService;
+import io.github.seastar.transaction.TransactionStatusSnapshot;
+import io.github.seastar.transaction.TransactionStatusSnapshotInterceptorUtils;
+import io.github.seastar.transaction.support.TransactionProcessUtils;
+import io.github.seastar.transaction.util.SpanUtils;
+import io.github.seastar.transaction.util.TraceUtils;
 import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -1,8 +1,8 @@
 package org.springframework.jdbc.datasource;
 
-import com.kqgeo.seastar.transaction.TraceContext;
-import com.kqgeo.seastar.transaction.TraceDefinition;
-import com.kqgeo.seastar.transaction.TraceResourceManager;
+import io.github.seastar.transaction.TraceContext;
+import io.github.seastar.transaction.TraceDefinition;
+import io.github.seastar.transaction.TraceResourceManager;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.lang.Nullable;
 import org.springframework.transaction.CannotCreateTransactionException;
