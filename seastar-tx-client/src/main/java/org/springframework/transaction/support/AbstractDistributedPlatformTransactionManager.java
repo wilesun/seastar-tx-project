@@ -748,13 +748,13 @@ public abstract class AbstractDistributedPlatformTransactionManager
      */
     private void processCommit(DefaultTransactionStatus status) throws TransactionException {
 
-        TraceDefinition trace = TraceContext.getContext().getTrace();
+/*        TraceDefinition trace = TraceContext.getContext().getTrace();
 
         if (SpanDefinition.COORDINATOR_SPAN_ID.equals(trace.getLastSpanId())) {
 
         } else {
 
-        }
+        }*/
 
         try {
             boolean beforeCompletionInvoked = false;
