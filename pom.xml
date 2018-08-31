@@ -30,6 +30,7 @@
 
 
     <modules>
+        <module>seastar-tx-docs</module>
         <module>seastar-tx-common</module>
         <module>seastar-tx-server-spring-boot</module>
         <module>seastar-tx-client</module>
