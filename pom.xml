@@ -33,6 +33,8 @@
         <module>seastar-tx-common</module>
         <module>seastar-tx-server-spring-boot</module>
         <module>seastar-tx-client</module>
+
+        <module>seastar-tx-sample-common</module>
         <module>seastar-tx-sample-org-spring-boot</module>
         <module>seastar-tx-sample-ac-spring-boot</module>
     </modules>
@@ -49,6 +51,12 @@
             <dependency>
                 <groupId>io.github.seastar.tx</groupId>
                 <artifactId>seastar-tx-client</artifactId>
+                <version>${seastar.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.seastar.tx</groupId>
+                <artifactId>seastar-tx-sample-common</artifactId>
                 <version>${seastar.version}</version>
             </dependency>
 

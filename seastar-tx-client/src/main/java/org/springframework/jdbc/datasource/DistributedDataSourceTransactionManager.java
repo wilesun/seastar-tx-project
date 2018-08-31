@@ -305,9 +305,7 @@ public class DistributedDataSourceTransactionManager
         if (txObject.isNewConnectionHolder()) {
             TransactionSynchronizationManager.unbindResource(obtainDataSource());
 
-            TraceContext traceContext = TraceContext.getContext();
-            // unbind TraceResourceManager
-            TraceResourceManager.unbindResource(traceContext.getTrace().getTraceId(), obtainDataSource());
+            TraceResourceManager.unbindResource(TraceContext.getContext().getTrace().getTraceId(), obtainDataSource());
         }
 
         // Reset connection.

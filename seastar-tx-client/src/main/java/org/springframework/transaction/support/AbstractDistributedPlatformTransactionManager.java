@@ -748,14 +748,6 @@ public abstract class AbstractDistributedPlatformTransactionManager
      */
     private void processCommit(DefaultTransactionStatus status) throws TransactionException {
 
-/*        TraceDefinition trace = TraceContext.getContext().getTrace();
-
-        if (SpanDefinition.COORDINATOR_SPAN_ID.equals(trace.getLastSpanId())) {
-
-        } else {
-
-        }*/
-
         try {
             boolean beforeCompletionInvoked = false;
 
@@ -1482,8 +1474,16 @@ public abstract class AbstractDistributedPlatformTransactionManager
         statusSnapshot.getSynchronizations().forEach(TransactionSynchronizationManager::registerSynchronization);
         statusSnapshot.getResources().forEach(TransactionSynchronizationManager::bindResource);
 
-        processCommit(status);
-        cleanupAfterTriggerCompletion(statusSnapshot);
+
+        TraceDefinition trace = TraceContext.getTrace(statusSnapshot.getTraceId());
+
+        try {
+            TraceContext.getContext().setTrace(trace);
+            processCommit(status);
+        } finally {
+            TraceContext.cleanupContext();
+            cleanupAfterTriggerCompletion(statusSnapshot);
+        }
     }
 
     private TransactionStatusSnapshot newTransactionStatusSnapshot(String traceId, int spanId, int order, DefaultTransactionStatus status) {
