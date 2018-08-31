@@ -1514,8 +1514,8 @@ public abstract class AbstractDistributedPlatformTransactionManager
 
         // 事务的协调者来协调事务
         if (SpanDefinition.COORDINATOR_SPAN_ID.equals(span.getId()) && span.getKind() == SpanDefinition.Kind.COORDINATOR) {
-            TraceContext traceContext = TraceContext.getContext();
-            traceContext.setTrace(trace);
+//            TraceContext traceContext = TraceContext.getContext();
+//            traceContext.setTrace(trace);
             String traceId = trace.getTraceId();
 
             SpanDefinition rollbackLastSpan = SpanUtils.getDeepSpan(trace);
@@ -1542,11 +1542,9 @@ public abstract class AbstractDistributedPlatformTransactionManager
 
             traceSyncService.syncTrace(trace);
 
-        } else {
-
-            // 事务参与者, 需要清空当前线程中的 traceContext.trace
-            TraceContext.cleanupContextForNonThreadReferences(span);
         }
+        // 事务参与者, 需要清空当前线程中的 traceContext.trace
+        TraceContext.cleanupContextForNonThreadReferences(span);
     }
 
 

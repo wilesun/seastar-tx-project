@@ -23,7 +23,6 @@ public class InvokedStackTransactionProcessService implements TransactionProcess
     private TransactionProcessResponse getResponse(Integer stackId, Integer spanId, TransactionGetPopResponseFunction popResponseFunction) {
 
         TraceContext traceContext = TraceContext.getContext();
-
         TraceDefinition currentTrace = traceContext.getTrace();
         String traceId = currentTrace.getTraceId();
         SpanDefinition span = SpanUtils.getSpan(currentTrace, spanId);
@@ -94,7 +93,8 @@ public class InvokedStackTransactionProcessService implements TransactionProcess
         Integer stackId = request.getStackId();
         int spanId = request.getSpanId();
 
-        TraceContext.getContext().setTrace(TraceContext.getTrace(traceId));
+        TraceDefinition trace = TraceContext.getTrace(traceId);
+        SpanDefinition span = SpanUtils.getSpan(trace, spanId);
 
 
         TransactionStatusSnapshot statusSnapshot = TraceResourceManager.getSnapshot(traceId, spanId);
@@ -110,19 +110,55 @@ public class InvokedStackTransactionProcessService implements TransactionProcess
             e.printStackTrace();
         }
 
+        TransactionProcessResponse popResponse = null;
+        Integer notPopSpanId = -128;
+
+        //
+        if (stackId != null && !stackId.equals(span.getParentId())) {
+            SpanDefinition parentSpan = SpanUtils.getParentSpan(trace, span);
+            if (parentSpan != null) {
+
+                TransactionProcessRequest popRequest =
+                        new TransactionProcessRequest(traceId, stackId, parentSpan.getId(),
+                                SpanUtils.hasLocalSpan(parentSpan), // 是否为本地处理
+                                parentSpan.getLocalEndpoint());
+                if (popRequest.isLocalProcess()) {
+                    // ParentSpan.endpoint 本地模式, 使用本地提交
+                    popResponse = commit(popRequest);
+                } else {
+                    popResponse = TransactionProcessUtils.httpCommit(popRequest);
+                }
+            }
+        }
+
+        if (popResponse == null) {
+            popResponse = new TransactionProcessResponse();
+            popResponse.setSpanId(notPopSpanId);
+            popResponse.setLastSpanId(spanId);
+        }
+
 
         TransactionProcessResponse response =
-                getResponse(stackId, spanId, (popRequest) -> {
+                new TransactionProcessResponse(traceId, stackId, spanId, popResponse.getLastSpanId());
 
-                    TransactionProcessResponse popResponse;
-                    if (popRequest.isLocalProcess()) {
-                        // ParentSpan.endpoint 本地模式, 使用本地提交
-                        popResponse = commit(popRequest);
-                    } else {
-                        popResponse = TransactionProcessUtils.httpCommit(popRequest);
-                    }
-                    return popResponse;
-                });
+        // 添加上一步操作
+        if (notPopSpanId != popResponse.getSpanId()) {
+            if (response.getPreviousResponses() == null) {
+                response.initPreviousResponses();
+            }
+
+            response.getPreviousResponses().add(popResponse);
+        }
+        if (!CollectionUtils.isEmpty(popResponse.getPreviousResponses())) {
+            if (response.getPreviousResponses() == null) {
+                response.initPreviousResponses();
+            }
+
+            response.getPreviousResponses().addAll(popResponse.getPreviousResponses());
+            popResponse.setPreviousResponses(null);
+        }
+
+
         response.setStatus(status);
 
         return response;
