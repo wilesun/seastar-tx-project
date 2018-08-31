@@ -17,9 +17,9 @@ spring:
 server:
   port: 9831
   servlet:
-    context-path: /tx-app1
-#  tomcat:
-#    max-threads: 10
+    context-path: /
+  tomcat:
+    max-threads: 3
 #  address: 192.168.0.189
 logging:
   level:
@@ -47,4 +47,4 @@ seastar:
   transaction:
     client:
       url: http://localhost:8851
-      local-endpoint: http://localhost:7643
+      local-endpoint: http://localhost:9831
