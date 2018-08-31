@@ -10,120 +10,36 @@ Target Server Type    : MYSQL
 Target Server Version : 50720
 File Encoding         : 65001
 
-Date: 2018-08-30 16:25:51
+Date: 2018-08-31 15:43:43
 */
 
 SET FOREIGN_KEY_CHECKS=0;
 
 -- ----------------------------
--- Table structure for app1_tx1
+-- Table structure for ac_role
 -- ----------------------------
-DROP TABLE IF EXISTS `app1_tx1`;
-CREATE TABLE `app1_tx1` (
+DROP TABLE IF EXISTS `ac_role`;
+CREATE TABLE `ac_role` (
   `id` int(11) DEFAULT NULL,
   `name` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- ----------------------------
--- Records of app1_tx1
+-- Records of ac_role
 -- ----------------------------
-INSERT INTO `app1_tx1` VALUES ('2', 'aaa');
-INSERT INTO `app1_tx1` VALUES ('2', 'aaa');
-INSERT INTO `app1_tx1` VALUES ('2', 'aaa');
-INSERT INTO `app1_tx1` VALUES ('2', 'aaa');
-INSERT INTO `app1_tx1` VALUES ('2', 'aaa');
-INSERT INTO `app1_tx1` VALUES ('2', 'aaa');
-INSERT INTO `app1_tx1` VALUES ('2', 'aaa');
-INSERT INTO `app1_tx1` VALUES ('2', 'aaa');
-INSERT INTO `app1_tx1` VALUES ('2', 'aaa');
-INSERT INTO `app1_tx1` VALUES ('2', 'aaa');
-INSERT INTO `app1_tx1` VALUES ('2', 'aaa');
-INSERT INTO `app1_tx1` VALUES ('2', 'aaa');
-INSERT INTO `app1_tx1` VALUES ('2', 'aaa');
-INSERT INTO `app1_tx1` VALUES ('2', 'aaa');
-INSERT INTO `app1_tx1` VALUES ('2', 'aaa');
-INSERT INTO `app1_tx1` VALUES ('2', 'aaa');
-INSERT INTO `app1_tx1` VALUES ('2', 'aaa');
-INSERT INTO `app1_tx1` VALUES ('2', 'aaa');
-INSERT INTO `app1_tx1` VALUES ('2', 'aaa');
-INSERT INTO `app1_tx1` VALUES ('2', 'aaa');
-INSERT INTO `app1_tx1` VALUES ('2', 'aaa');
-INSERT INTO `app1_tx1` VALUES ('2', 'aaa');
+INSERT INTO `ac_role` VALUES ('1', 'admin_role');
 
 -- ----------------------------
--- Table structure for app1_tx2
+-- Table structure for org_user
 -- ----------------------------
-DROP TABLE IF EXISTS `app1_tx2`;
-CREATE TABLE `app1_tx2` (
-  `id` int(11) DEFAULT NULL,
-  `name` varchar(255) DEFAULT NULL
+DROP TABLE IF EXISTS `org_user`;
+CREATE TABLE `org_user` (
+  `uid` int(11) DEFAULT NULL,
+  `name` varchar(255) DEFAULT NULL,
+  `age` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- ----------------------------
--- Records of app1_tx2
+-- Records of org_user
 -- ----------------------------
-INSERT INTO `app1_tx2` VALUES ('2', 'aaa');
-
--- ----------------------------
--- Table structure for app1_tx3
--- ----------------------------
-DROP TABLE IF EXISTS `app1_tx3`;
-CREATE TABLE `app1_tx3` (
-  `id` int(11) DEFAULT NULL,
-  `name` varchar(255) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
--- ----------------------------
--- Records of app1_tx3
--- ----------------------------
-INSERT INTO `app1_tx3` VALUES ('2', 'aaa');
-
--- ----------------------------
--- Table structure for tx1
--- ----------------------------
-DROP TABLE IF EXISTS `tx1`;
-CREATE TABLE `tx1` (
-  `id` int(11) DEFAULT NULL,
-  `name` varchar(255) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
--- ----------------------------
--- Records of tx1
--- ----------------------------
-INSERT INTO `tx1` VALUES ('1', null);
-INSERT INTO `tx1` VALUES ('2', 'aaa');
-INSERT INTO `tx1` VALUES ('2', 'aaa');
-INSERT INTO `tx1` VALUES ('2', 'aaa');
-INSERT INTO `tx1` VALUES ('2', 'aaa');
-INSERT INTO `tx1` VALUES ('2', 'aaa');
-INSERT INTO `tx1` VALUES ('2', 'aaa');
-INSERT INTO `tx1` VALUES ('2', 'aaa');
-INSERT INTO `tx1` VALUES ('2', 'aaa');
-INSERT INTO `tx1` VALUES ('2', 'aaa');
-INSERT INTO `tx1` VALUES ('2', 'aaa');
-INSERT INTO `tx1` VALUES ('2', 'aaa');
-INSERT INTO `tx1` VALUES ('2', 'aaa');
-INSERT INTO `tx1` VALUES ('2', 'aaa');
-INSERT INTO `tx1` VALUES ('2', 'aaa');
-INSERT INTO `tx1` VALUES ('2', 'aaa');
-INSERT INTO `tx1` VALUES ('2', 'aaa');
-INSERT INTO `tx1` VALUES ('2', 'aaa');
-INSERT INTO `tx1` VALUES ('2', 'aaa');
-INSERT INTO `tx1` VALUES ('2', 'aaa');
-INSERT INTO `tx1` VALUES ('2', 'aaa');
-INSERT INTO `tx1` VALUES ('2', 'aaa');
-INSERT INTO `tx1` VALUES ('2', 'aaa');
-
--- ----------------------------
--- Table structure for tx2
--- ----------------------------
-DROP TABLE IF EXISTS `tx2`;
-CREATE TABLE `tx2` (
-  `id` int(11) DEFAULT NULL,
-  `name` varchar(255) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
--- ----------------------------
--- Records of tx2
--- ----------------------------
-INSERT INTO `tx2` VALUES ('2', 'aaa');
+INSERT INTO `org_user` VALUES ('1', 'ae', '18');
