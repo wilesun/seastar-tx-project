@@ -33,8 +33,8 @@
         <module>seastar-tx-common</module>
         <module>seastar-tx-server-spring-boot</module>
         <module>seastar-tx-client</module>
-        <module>seastar-tx-sample-app1-spring-boot</module>
-        <module>seastar-tx-sample-app2-spring-boot</module>
+        <module>seastar-tx-sample-org-spring-boot</module>
+        <module>seastar-tx-sample-ac-spring-boot</module>
     </modules>
 
     <dependencyManagement>
