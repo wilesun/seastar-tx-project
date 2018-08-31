@@ -1,6 +1,6 @@
 package io.github.seastar.tx.sample.ac.web.controller;
 
-import io.github.seastar.tx.sample.ac.model.AcRole;
+import io.github.seastar.tx.ac.model.AcRole;
 import io.github.seastar.tx.sample.ac.service.AcRoleService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;

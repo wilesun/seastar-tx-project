@@ -1,4 +1,4 @@
-package io.github.seastar.tx.sample.ac.model;
+package io.github.seastar.tx.ac.model;
 
 import lombok.Data;
 

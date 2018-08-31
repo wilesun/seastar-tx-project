@@ -1,6 +1,6 @@
 package io.github.seastar.tx.sample.ac.service;
 
-import io.github.seastar.tx.sample.ac.model.AcRole;
+import io.github.seastar.tx.ac.model.AcRole;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
