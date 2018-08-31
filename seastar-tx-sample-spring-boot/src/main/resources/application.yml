@@ -5,15 +5,10 @@ spring:
     proxy-target-class: true
   datasource:
     type: org.springframework.jdbc.datasource.DriverManagerDataSource
-    driver-class-name: org.postgresql.Driver
-#    url: jdbc:postgresql://host-196:5432/seastar
-    url: jdbc:postgresql://localhost:5432/seastar
-    username: postgres
-    password: postgres
-#    hikari:
-#      maximum-pool-size: 10
-#      max-lifetime: 1765000
-#      minimum-idle: 1
+    driver-class-name: com.mysql.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/seastar_tx?useUnicode=true&characterEncoding=utf8&useSSL=false
+    username: root
+    password: root
 #logging:
 #  level:
 #    org.springframework.jdbc.datasource: debug
