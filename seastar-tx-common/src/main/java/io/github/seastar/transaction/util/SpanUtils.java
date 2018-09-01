@@ -119,9 +119,7 @@ public abstract class SpanUtils {
     }
 
 
-    public static boolean hasLocalSpan(SpanDefinition span) {
-
-        return span.getLocalEndpoint() == null ||
-                getLocalEndpoint().equals(span.getLocalEndpoint());
+    public static boolean hasLocalSpan(String endpoint) {
+        return getLocalEndpoint().equals(endpoint);
     }
 }
