@@ -13,7 +13,6 @@ import io.github.seastar.transaction.TransactionProcessResponse;
 import io.github.seastar.transaction.TransactionProcessService;
 import io.github.seastar.transaction.TransactionStatusSnapshot;
 import io.github.seastar.transaction.TransactionStatusSnapshotInterceptorUtils;
-import io.github.seastar.transaction.support.TransactionProcessUtils;
 import io.github.seastar.transaction.util.SpanUtils;
 import io.github.seastar.transaction.util.TraceUtils;
 import lombok.Setter;
@@ -96,11 +95,6 @@ public abstract class AbstractDistributedPlatformTransactionManager
     private boolean failEarlyOnGlobalRollbackOnly = false;
 
     private boolean rollbackOnCommitFailure = false;
-
-
-//    @Setter
-//    @Autowired
-//    protected TraceResourceManager traceResourceManager;
 
     @Setter
     @Autowired
@@ -735,8 +729,8 @@ public abstract class AbstractDistributedPlatformTransactionManager
         }
 
 
-        begCommitDelegate(defStatus);
-//        processCommit(defStatus);
+//        begCommitDelegate(defStatus);
+        processCommit(defStatus);
     }
 
     /**
@@ -747,6 +741,12 @@ public abstract class AbstractDistributedPlatformTransactionManager
      * @throws TransactionException in case of commit failure
      */
     private void processCommit(DefaultTransactionStatus status) throws TransactionException {
+
+        TraceDefinition trace = TraceContext.getContext().getTrace();
+
+        Integer lastSpanId = trace.getLastSpanId();
+        SpanDefinition coordinateSpan = SpanUtils.getSpan(trace, SpanDefinition.COORDINATOR_SPAN_ID);
+        SpanDefinition lastSpan = SpanUtils.getSpan(trace, lastSpanId);
 
         try {
             boolean beforeCompletionInvoked = false;
@@ -763,13 +763,13 @@ public abstract class AbstractDistributedPlatformTransactionManager
                         logger.debug("Releasing transaction savepoint");
                     }
                     unexpectedRollback = status.isGlobalRollbackOnly();
-                    status.releaseHeldSavepoint();
+//                        status.releaseHeldSavepoint();
                 } else if (status.isNewTransaction()) {
                     if (status.isDebug()) {
                         logger.debug("Initiating transaction commit");
                     }
                     unexpectedRollback = status.isGlobalRollbackOnly();
-                    doCommit(status);
+//                        doCommit(status);
                 } else if (isFailEarlyOnGlobalRollbackOnly()) {
                     unexpectedRollback = status.isGlobalRollbackOnly();
                 }
@@ -800,6 +800,37 @@ public abstract class AbstractDistributedPlatformTransactionManager
                 throw ex;
             }
 
+            // 参与者处理事务
+            begCommitDelegate(status);
+
+            if (SpanDefinition.COORDINATOR_SPAN_ID.equals(lastSpanId)) {
+
+
+                String traceId = trace.getTraceId();
+
+                SpanDefinition commitLastSpan = SpanUtils.getDeepSpan(trace);
+
+                Integer commitLastSpanId = commitLastSpan.getId();
+
+                // 提交
+                while (0 != commitLastSpanId) {
+                    TransactionProcessRequest request =
+                            new TransactionProcessRequest(traceId, SpanDefinition.COORDINATOR_SPAN_ID,
+                                    commitLastSpanId, /*SpanUtils.hasLocalSpan(commitLastSpan),*/ commitLastSpan.getLocalEndpoint());
+                    // 将 commit 和 rollback 的具体业务逻辑抽取出来 使用 一个单独的 TransactionProcessFunction 接口
+                    // 抽象具体的事务处理逻辑
+                    TransactionProcessResponse response = transactionProcessService.commit(request);
+                    List<SpanDefinition> spans = trace.getSpans();
+                    response.mergeToSpans(spans);
+
+                    commitLastSpanId = response.getLastSpanId() - 1;
+                    commitLastSpan = SpanUtils.getSpan(trace, commitLastSpanId);
+                }
+
+                traceSyncService.syncTrace(trace);
+
+            }
+
             // Trigger afterCommit callbacks, with an exception thrown there
             // propagated to callers but the transaction still considered as committed.
             try {
@@ -809,8 +840,42 @@ public abstract class AbstractDistributedPlatformTransactionManager
             }
 
         } finally {
-            cleanupAfterCompletion(status);
+
+            try {
+                if (SpanDefinition.COORDINATOR_SPAN_ID.equals(lastSpanId)) {
+                    cleanupAfterCompletion(status);
+                } else if (SpanDefinition.Kind.PARTICIPATOR == lastSpan.getKind() &&
+                        coordinateSpan.getLocalEndpoint().equals(lastSpan.getLocalEndpoint())) {
+                    cleanupAfterParticipantCompletion(status);
+                } else if (SpanDefinition.Kind.PARTICIPATOR == lastSpan.getKind() &&
+                        !coordinateSpan.getLocalEndpoint().equals(lastSpan.getLocalEndpoint())) {
+
+                    if (status.isNewSynchronization()) {
+                        TransactionSynchronizationManager.clear();
+                    }
+
+                    if (status.isNewTransaction()) {
+                        Set<Object> resourceKeys = new HashSet<>(TransactionSynchronizationManager.getResourceMap().keySet());
+                        resourceKeys.forEach(TransactionSynchronizationManager::unbindResourceIfPossible);
+                    }
+
+                    if (status.getSuspendedResources() != null) {
+                        if (status.isDebug()) {
+                            logger.debug("Resuming suspended transaction after completion of inner transaction");
+                        }
+                        Object transaction = (status.hasTransaction() ? status.getTransaction() : null);
+                        resume(transaction, (SuspendedResourcesHolder) status.getSuspendedResources());
+                    }
+
+                }
+            } finally {
+                // cleanup context for non thread ref
+                TraceContext.cleanupContextForNonThreadReferences(lastSpan);
+
+            }
         }
+
+
     }
 
     /**
@@ -1029,6 +1094,7 @@ public abstract class AbstractDistributedPlatformTransactionManager
         if (status.isNewTransaction()) {
             doCleanupAfterCompletion(status.getTransaction());
         }
+
         if (status.getSuspendedResources() != null) {
             if (status.isDebug()) {
                 logger.debug("Resuming suspended transaction after completion of inner transaction");
@@ -1037,6 +1103,41 @@ public abstract class AbstractDistributedPlatformTransactionManager
             resume(transaction, (SuspendedResourcesHolder) status.getSuspendedResources());
         }
     }
+
+    private void cleanupAfterParticipantCompletion(DefaultTransactionStatus status) {
+
+        //        status.setCompleted();
+
+        if (status.isNewSynchronization()) {
+            TransactionSynchronizationManager.clear();
+        }
+
+//        if (status.isNewTransaction()) {
+//            doCleanupAfterCompletion(status.getTransaction());
+//        }
+
+        if (status.getSuspendedResources() != null) {
+            if (status.isDebug()) {
+                logger.debug("Resuming suspended transaction after completion of inner transaction");
+            }
+            Object transaction = (status.hasTransaction() ? status.getTransaction() : null);
+            resume(transaction, (SuspendedResourcesHolder) status.getSuspendedResources());
+        }
+    }
+
+//    private void cleanupAfterUseCompletion(DefaultTransactionStatus status) {
+//        if (status.isNewSynchronization()) {
+//            TransactionSynchronizationManager.clear();
+//        }
+//
+//        if (status.getSuspendedResources() != null) {
+//            if (status.isDebug()) {
+//                logger.debug("Resuming suspended transaction after completion of inner transaction");
+//            }
+//            Object transaction = (status.hasTransaction() ? status.getTransaction() : null);
+//            resume(transaction, (SuspendedResourcesHolder) status.getSuspendedResources());
+//        }
+//    }
 
 
     //---------------------------------------------------------------------
@@ -1360,7 +1461,7 @@ public abstract class AbstractDistributedPlatformTransactionManager
 
         TransactionStatusSnapshotInterceptorUtils.invokeAfterBegProcess(statusSnapshot, span, trace);
 
-        cleanupAfterBegTransaction(status, span);
+//        cleanupAfterBegTransaction(status, span);
 
 
 //        // 事务的协调者来协调事务
@@ -1405,39 +1506,39 @@ public abstract class AbstractDistributedPlatformTransactionManager
 //            TraceContext.cleanupContextForNonThreadReferences(span);
 //        }
 
-        processForTransactionFunction(trace, span, (request) -> {
-            TransactionProcessResponse response;
-            if (request.isLocalProcess()) {
-                response = transactionProcessService.commit(request);
-            } else {
-                response = TransactionProcessUtils.httpCommit(request);
-            }
-
-            return response;
-        });
+//        processForTransactionFunction(trace, span, (request) -> {
+//            TransactionProcessResponse response;
+//            if (request.isLocalProcess()) {
+//                response = transactionProcessService.commit(request);
+//            } else {
+//                response = TransactionProcessUtils.httpCommit(request);
+//            }
+//
+//            return response;
+//        });
     }
 
 
-    private void cleanupAfterBegTransaction(DefaultTransactionStatus status, SpanDefinition span) {
-
-        if (status.isNewSynchronization()) {
-            TransactionSynchronizationManager.clear();
-        }
-
-        // span 如果是对同一个事务在多个线程中共享 resources, 在本次 BegCommit 需要清空当前线程绑定
-        if (status.isNewTransaction() || !TraceContext.hasReferencesForLocalInvokedStack(span)) {
-            Set<Object> resourceKeys = new HashSet<>(TransactionSynchronizationManager.getResourceMap().keySet());
-            resourceKeys.forEach(TransactionSynchronizationManager::unbindResourceIfPossible);
-        }
-
-        if (status.getSuspendedResources() != null) {
-            if (status.isDebug()) {
-                logger.debug("Resuming suspended transaction after completion of inner transaction");
-            }
-            Object transaction = (status.hasTransaction() ? status.getTransaction() : null);
-            resume(transaction, (SuspendedResourcesHolder) status.getSuspendedResources());
-        }
-    }
+//    private void cleanupAfterBegTransaction(DefaultTransactionStatus status, SpanDefinition span) {
+//
+//        if (status.isNewSynchronization()) {
+//            TransactionSynchronizationManager.clear();
+//        }
+//
+//        // span 如果是对同一个事务在多个线程中共享 resources, 在本次 BegCommit 需要清空当前线程绑定
+//        if (status.isNewTransaction() || !TraceContext.hasReferencesForLocalInvokedStack(span)) {
+//            Set<Object> resourceKeys = new HashSet<>(TransactionSynchronizationManager.getResourceMap().keySet());
+//            resourceKeys.forEach(TransactionSynchronizationManager::unbindResourceIfPossible);
+//        }
+//
+//        if (status.getSuspendedResources() != null) {
+//            if (status.isDebug()) {
+//                logger.debug("Resuming suspended transaction after completion of inner transaction");
+//            }
+//            Object transaction = (status.hasTransaction() ? status.getTransaction() : null);
+//            resume(transaction, (SuspendedResourcesHolder) status.getSuspendedResources());
+//        }
+//    }
 
     private void cleanupBeforeTriggerCompletion() {
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
@@ -1449,40 +1550,67 @@ public abstract class AbstractDistributedPlatformTransactionManager
 
     private void cleanupAfterTriggerCompletion(TransactionStatusSnapshot statusSnapshot) {
 
-        if (statusSnapshot.getTransactionStatus().getSuspendedResources() == null) {
-            TransactionSynchronizationManager.clear();
-            Set<Object> resourceKeys = new HashSet<>(TransactionSynchronizationManager.getResourceMap().keySet());
-            resourceKeys.forEach(TransactionSynchronizationManager::unbindResourceIfPossible);
-        }
+        TransactionSynchronizationManager.clear();
+        Set<Object> resourceKeys = new HashSet<>(TransactionSynchronizationManager.getResourceMap().keySet());
+        resourceKeys.forEach(TransactionSynchronizationManager::unbindResourceIfPossible);
     }
 
     @Override
     public void triggerCommitDelegate(TransactionStatusSnapshot statusSnapshot) {
 
 
-        cleanupBeforeTriggerCompletion();
+        boolean isActive = TransactionSynchronizationManager.isSynchronizationActive();
+        if (!isActive) {
+            TransactionSynchronizationManager.setCurrentTransactionIsolationLevel(statusSnapshot.getCurrentTransactionIsolationLevel());
+            TransactionSynchronizationManager.setCurrentTransactionName(statusSnapshot.getCurrentTransactionName());
+            TransactionSynchronizationManager.setCurrentTransactionReadOnly(statusSnapshot.isCurrentTransactionReadOnly());
+            TransactionSynchronizationManager.setActualTransactionActive(statusSnapshot.isActualTransactionActive());
+            TransactionSynchronizationManager.initSynchronization();
 
+            // 绑定
+            statusSnapshot.getSynchronizations().forEach(TransactionSynchronizationManager::registerSynchronization);
+            statusSnapshot.getResources().forEach(TransactionSynchronizationManager::bindResource);
+        }
+
+//        TraceDefinition trace = TraceContext.getTrace(statusSnapshot.getTraceId());
         DefaultTransactionStatus status = statusSnapshot.getTransactionStatus();
 
-        TransactionSynchronizationManager.setCurrentTransactionIsolationLevel(statusSnapshot.getCurrentTransactionIsolationLevel());
-        TransactionSynchronizationManager.setCurrentTransactionName(statusSnapshot.getCurrentTransactionName());
-        TransactionSynchronizationManager.setCurrentTransactionReadOnly(statusSnapshot.isCurrentTransactionReadOnly());
-        TransactionSynchronizationManager.setActualTransactionActive(statusSnapshot.isActualTransactionActive());
-        TransactionSynchronizationManager.initSynchronization();
 
-        // 绑定
-        statusSnapshot.getSynchronizations().forEach(TransactionSynchronizationManager::registerSynchronization);
-        statusSnapshot.getResources().forEach(TransactionSynchronizationManager::bindResource);
+        String traceId = statusSnapshot.getTraceId();
+        Integer spanId = statusSnapshot.getSpanId();
+        TraceContext traceContext = TraceContext.getContext();
+        TraceDefinition trace = TraceContext.getTrace(traceId);
 
-
-        TraceDefinition trace = TraceContext.getTrace(statusSnapshot.getTraceId());
+        boolean hasTrace = traceContext.hasTrace();
+        if (!hasTrace) {
+            traceContext.setTrace(trace);
+        }
 
         try {
-            TraceContext.getContext().setTrace(trace);
-            processCommit(status);
+            if (status.hasSavepoint()) {
+                if (status.isDebug()) {
+                    logger.debug("Releasing transaction savepoint");
+                }
+
+                status.releaseHeldSavepoint();
+            } else if (status.isNewTransaction()) {
+                if (status.isDebug()) {
+                    logger.debug("Initiating transaction commit");
+                }
+                doCommit(status);
+            }
+
+            TraceResourceManager.removeSnapshot(traceId, spanId);
         } finally {
-            TraceContext.cleanupContext();
-            cleanupAfterTriggerCompletion(statusSnapshot);
+            status.setCompleted();
+            if (!isActive) {
+                doCleanupAfterCompletion(statusSnapshot.getTransactionStatus().getTransaction());
+                cleanupAfterTriggerCompletion(statusSnapshot);
+            }
+
+            if (!hasTrace) {
+                TraceContext.cleanupContext();
+            }
         }
     }
 
@@ -1524,12 +1652,12 @@ public abstract class AbstractDistributedPlatformTransactionManager
             // 提交
             while (0 != rollbackLastSpanId) {
 
-                boolean isLocalProcess = SpanUtils.hasLocalSpan(rollbackLastSpan);
+//                boolean isLocalProcess = SpanUtils.hasLocalSpan(rollbackLastSpan);
                 String endpoint = rollbackLastSpan.getLocalEndpoint();
 
 
                 TransactionProcessRequest request =
-                        new TransactionProcessRequest(traceId, SpanDefinition.COORDINATOR_SPAN_ID, rollbackLastSpanId, isLocalProcess, endpoint);
+                        new TransactionProcessRequest(traceId, SpanDefinition.COORDINATOR_SPAN_ID, rollbackLastSpanId/*, isLocalProcess*/, endpoint);
                 // 将 commit 和 rollback 的具体业务逻辑抽取出来 使用 一个单独的 TransactionProcessFunction 接口
                 // 抽象具体的事务处理逻辑
                 TransactionProcessResponse response = processFunction.process(request);
@@ -1577,20 +1705,20 @@ public abstract class AbstractDistributedPlatformTransactionManager
 
         TransactionStatusSnapshotInterceptorUtils.invokeAfterBegProcess(statusSnapshot, span, trace);
 
-        cleanupAfterBegTransaction(status, span);
+//        cleanupAfterBegTransaction(status, span);
 
-        processForTransactionFunction(trace, span, ((request) -> {
-
-            TransactionProcessResponse response;
-
-            if (request.isLocalProcess()) {
-                response = transactionProcessService.rollback(request);
-            } else {
-                response = TransactionProcessUtils.httpRollback(request);
-            }
-
-            return response;
-        }));
+//        processForTransactionFunction(trace, span, ((request) -> {
+//
+//            TransactionProcessResponse response;
+//
+//            if (request.isLocalProcess()) {
+//                response = transactionProcessService.rollback(request);
+//            } else {
+//                response = TransactionProcessUtils.httpRollback(request);
+//            }
+//
+//            return response;
+//        }));
 
 
     }

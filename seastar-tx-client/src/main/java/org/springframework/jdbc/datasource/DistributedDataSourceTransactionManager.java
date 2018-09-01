@@ -14,6 +14,7 @@ import org.springframework.transaction.support.ResourceTransactionManager;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionSynchronizationUtils;
 import org.springframework.util.Assert;
+import org.springframework.util.ObjectUtils;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -305,7 +306,12 @@ public class DistributedDataSourceTransactionManager
         if (txObject.isNewConnectionHolder()) {
             TransactionSynchronizationManager.unbindResource(obtainDataSource());
 
-            TraceResourceManager.unbindResource(TraceContext.getContext().getTrace().getTraceId(), obtainDataSource());
+            // unbind resource
+            TraceDefinition trace = TraceContext.getContext().getTrace();
+            if (!ObjectUtils.isEmpty(trace)) {
+                TraceResourceManager.unbindResource(trace.getTraceId(), obtainDataSource());
+            }
+
         }
 
         // Reset connection.

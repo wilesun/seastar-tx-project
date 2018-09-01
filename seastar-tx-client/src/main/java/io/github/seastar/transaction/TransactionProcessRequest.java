@@ -18,7 +18,7 @@ public class TransactionProcessRequest {
 
     Integer spanId;
 
-    boolean localProcess;
+//    boolean localProcess;
 
     String endpoint;
 

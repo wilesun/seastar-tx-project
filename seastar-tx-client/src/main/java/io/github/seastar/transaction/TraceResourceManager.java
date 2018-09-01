@@ -4,7 +4,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.transaction.support.ResourceHolder;
 import org.springframework.util.Assert;
+import org.springframework.util.ObjectUtils;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -155,6 +157,31 @@ public abstract class TraceResourceManager {
         }
         return value;
     }
+
+//    public static String getTraceId(Object transaction) {
+//
+//        Collection<Map<Integer, TransactionStatusSnapshot>> snapshotMaps = snapshots.values();
+//
+//        if (ObjectUtils.isEmpty(snapshotMaps)) {
+//            return null;
+//        }
+//
+//        for (Map<Integer, TransactionStatusSnapshot> snapshotMap : snapshotMaps) {
+//            Collection<TransactionStatusSnapshot> statusSnapshots = snapshotMap.values();
+//
+//            if (ObjectUtils.isEmpty(statusSnapshots)) {
+//                return null;
+//            }
+//
+//            for (TransactionStatusSnapshot statusSnapshot : statusSnapshots) {
+//                if (statusSnapshot.getTransactionStatus().getTransaction() == transaction) {
+//                    return statusSnapshot.getTraceId();
+//                }
+//            }
+//        }
+//
+//        return null;
+//    }
 
     public static ConcurrentMap<String, Map<Object, Object>> getResources() {
         return resources;
