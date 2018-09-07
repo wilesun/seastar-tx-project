@@ -803,13 +803,12 @@ public abstract class AbstractDistributedPlatformTransactionManager
             // 参与者处理事务
             begCommitDelegate(status);
 
+
+            // 当前处理的 lastSpanId 为 事务协调者
             if (SpanDefinition.COORDINATOR_SPAN_ID.equals(lastSpanId)) {
 
-
                 String traceId = trace.getTraceId();
-
                 SpanDefinition commitLastSpan = SpanUtils.getDeepSpan(trace);
-
                 Integer commitLastSpanId = commitLastSpan.getId();
 
                 // 提交
@@ -843,11 +842,14 @@ public abstract class AbstractDistributedPlatformTransactionManager
 
             try {
                 if (SpanDefinition.COORDINATOR_SPAN_ID.equals(lastSpanId)) {
+                    // 协调者 清空当前线程中的引用
                     cleanupAfterCompletion(status);
                 } else if (SpanDefinition.Kind.PARTICIPATOR == lastSpan.getKind() &&
                         coordinateSpan.getLocalEndpoint().equals(lastSpan.getLocalEndpoint())) {
                     cleanupAfterParticipantCompletion(status);
-                } else if (SpanDefinition.Kind.PARTICIPATOR == lastSpan.getKind() &&
+                }
+                // 参与者与协调者不在同一个 endpoint 内, 需要 清空资源
+                else if (SpanDefinition.Kind.PARTICIPATOR == lastSpan.getKind() &&
                         !coordinateSpan.getLocalEndpoint().equals(lastSpan.getLocalEndpoint())) {
 
                     if (status.isNewSynchronization()) {

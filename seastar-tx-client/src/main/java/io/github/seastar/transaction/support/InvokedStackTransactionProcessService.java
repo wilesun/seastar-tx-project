@@ -9,15 +9,20 @@ import io.github.seastar.transaction.TransactionProcessResponse;
 import io.github.seastar.transaction.TransactionProcessService;
 import io.github.seastar.transaction.TransactionStatusSnapshot;
 import io.github.seastar.transaction.util.SpanUtils;
+import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 
+/**
+ * InvokedStack 按照事务创建的顺序来处理事务, 事务处理(commit/rollback).<br />
+ * 如果事务创建的顺序为: a -> b -> c -> d, 那么事务处理的顺序为: d -> c -> b -> a.
+ */
 public class InvokedStackTransactionProcessService implements TransactionProcessService {
 
 
-    @FunctionalInterface
-    public static interface TransactionGetPopResponseFunction {
-        TransactionProcessResponse get(TransactionProcessRequest request);
-    }
+//    @FunctionalInterface
+//    public static interface TransactionGetPopResponseFunction {
+//        TransactionProcessResponse get(TransactionProcessRequest request);
+//    }
 
 
 //    private TransactionProcessResponse getResponse(Integer stackId, Integer spanId, TransactionGetPopResponseFunction popResponseFunction) {
@@ -88,19 +93,20 @@ public class InvokedStackTransactionProcessService implements TransactionProcess
 
     @Override
     public TransactionProcessResponse commit(TransactionProcessRequest request) {
-
-
+        // 是否为本地提交
         if (SpanUtils.hasLocalSpan(request.getEndpoint())) {
             String traceId = request.getTraceId();
             Integer stackId = request.getStackId();
             int spanId = request.getSpanId();
 
             TraceDefinition trace = TraceContext.getTrace(traceId);
+            Assert.notNull(trace, "Trace[ " + traceId + " ] 为空");
             SpanDefinition span = SpanUtils.getSpan(trace, spanId);
-
+            Assert.notNull(span, "Span[ " + spanId + " ] 为空");
 
             TransactionStatusSnapshot statusSnapshot = TraceResourceManager.getSnapshot(traceId, spanId);
 
+            // 提交状态
             SpanDefinition.Status status;
             try {
                 // 委托提交
@@ -115,7 +121,8 @@ public class InvokedStackTransactionProcessService implements TransactionProcess
             TransactionProcessResponse popResponse = null;
             Integer notPopSpanId = -128;
 
-            //
+            // stackId 与 span.parentId 如果不相同说明 parentId 不是由 stackId
+            // 所在的事务处理请求所发起的, 将继续调用 parentId 所在的事务处理服务
             if (stackId != null && !stackId.equals(span.getParentId())) {
                 SpanDefinition parentSpan = SpanUtils.getParentSpan(trace, span);
                 if (parentSpan != null) {
@@ -139,12 +146,13 @@ public class InvokedStackTransactionProcessService implements TransactionProcess
                 popResponse.setLastSpanId(spanId);
             }
 
-
             TransactionProcessResponse response =
                     new TransactionProcessResponse(traceId, stackId, spanId, popResponse.getLastSpanId());
 
-            // 添加上一步操作
-            if (notPopSpanId != popResponse.getSpanId()) {
+            response.setStatus(status);
+
+            // 合并上一步处理的 Response 信息到最新的 response 对象中
+            if (notPopSpanId.equals(popResponse.getSpanId())) {
                 if (response.getPreviousResponses() == null) {
                     response.initPreviousResponses();
                 }
@@ -159,9 +167,6 @@ public class InvokedStackTransactionProcessService implements TransactionProcess
                 response.getPreviousResponses().addAll(popResponse.getPreviousResponses());
                 popResponse.setPreviousResponses(null);
             }
-
-
-            response.setStatus(status);
 
             return response;
         } else {
