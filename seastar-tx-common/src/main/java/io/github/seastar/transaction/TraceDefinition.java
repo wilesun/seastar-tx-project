@@ -1,8 +1,6 @@
 package io.github.seastar.transaction;
 
 import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
 
 import java.util.List;
 
@@ -18,9 +16,16 @@ public class TraceDefinition {
      */
     private String traceId;
 
-    @Getter
-    @Setter
+    /**
+     * last span id
+     */
     private Integer lastSpanId;
+
+
+    /**
+     * trace 更新版本, 在向 Tx-Server 中更新 Trace 数据的时候, 如果数据有变动版本会增加
+     */
+    private int version = 0;
 
     /**
      * 如果为嵌套事务, 设置上一层嵌套 Trace 的 id
